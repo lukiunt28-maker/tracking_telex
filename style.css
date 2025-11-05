@@ -1,0 +1,463 @@
+/* --- GLOBAL STYLES & VARIABLES --- */
+:root {
+    --primary-color: #005A9C;
+    --secondary-color: #00C1D4;
+    --success-color: #28a745;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --light-color: #f8f9fa;
+    --dark-color: #343a40;
+    --text-color: #333;
+    --border-radius: 12px;
+    --box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #eef2f7;
+    color: var(--text-color);
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 30px auto;
+    padding: 0 20px;
+}
+
+/* --- HERO HEADER --- */
+.hero-header {
+    background: linear-gradient(rgba(0, 90, 156, 0.7), rgba(0, 90, 156, 0.7)), 
+                url('https://source.unsplash.com/random/1600x400/?airport,communication') no-repeat center center/cover;
+    color: white;
+    padding: 80px 20px;
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.hero-content h1 {
+    font-size: 3.5rem;
+    margin: 0;
+    text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+}
+
+.hero-content p {
+    font-size: 1.2rem;
+    margin-top: 10px;
+    opacity: 0.9;
+}
+
+/* --- DASHBOARD --- */
+.dashboard {
+    margin-bottom: 40px;
+}
+
+.dashboard h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: var(--dark-color);
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+}
+
+.card {
+    background-color: white;
+    padding: 25px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.card h3 {
+    margin: 0 0 10px 0;
+    font-size: 1rem;
+    color: #666;
+    font-weight: 500;
+}
+
+.card-value {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.card-total { border-left: 5px solid var(--primary-color); }
+.card-total .card-value { color: var(--primary-color); }
+
+.card-pending { border-left: 5px solid var(--danger-color); }
+.card-pending .card-value { color: var(--danger-color); }
+
+.card-done { border-left: 5px solid var(--success-color); }
+.card-done .card-value { color: var(--success-color); }
+
+.card-progress { border-left: 5px solid var(--secondary-color); }
+.card-progress .card-value { color: var(--secondary-color); }
+
+/* --- SEARCH SECTION --- */
+.search-section {
+    margin-bottom: 30px;
+}
+
+.search-container {
+    position: relative;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.search-icon {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #aaa;
+    font-size: 1.2rem;
+}
+
+#searchInput {
+    width: 100%;
+    padding: 15px 50px 15px 45px;
+    font-size: 1rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 50px;
+    box-shadow: var(--box-shadow);
+    transition: border-color 0.3s, box-shadow 0.3s;
+    box-sizing: border-box;
+}
+
+#searchInput:focus {
+    outline: none;
+    border-color: var(--secondary-color);
+    box-shadow: 0 4px 20px rgba(0, 193, 212, 0.3);
+}
+
+.clear-search-btn {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: #aaa;
+    cursor: pointer;
+    display: none;
+    padding: 0;
+    line-height: 1;
+}
+
+.clear-search-btn:hover {
+    color: var(--dark-color);
+}
+
+/* --- FORM SECTION --- */
+.form-section h2, .table-section h2 {
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--light-color);
+    padding-bottom: 10px;
+    margin-top: 0;
+}
+
+.form-section form {
+    display: grid;
+    gap: 15px;
+}
+
+.form-section input, .form-section textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-sizing: border-box;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.form-section input:focus, .form-section textarea:focus {
+    outline: none;
+    border-color: var(--secondary-color);
+}
+
+.form-section button[type="submit"] {
+    padding: 15px 20px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.form-section button[type="submit"]:hover {
+    background-color: #004175;
+}
+
+/* --- CONTROLS & FILTER --- */
+.controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 30px 0;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+#exportBtn {
+    padding: 12px 20px;
+    background-color: var(--success-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+#exportBtn:hover {
+    background-color: #218838;
+}
+
+.filter-buttons {
+    display: flex;
+    gap: 10px;
+    background-color: white;
+    padding: 5px;
+    border-radius: 8px;
+    box-shadow: var(--box-shadow);
+}
+
+.filter-btn {
+    padding: 10px 15px;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.3s;
+    font-weight: 500;
+}
+
+.filter-btn.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* --- TABLE --- */
+.table-section {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th, td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+th {
+    background-color: var(--light-color);
+    font-weight: 600;
+    color: var(--dark-color);
+}
+
+tr:hover {
+    background-color: #f9f9f9;
+}
+
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: white;
+}
+
+.status-pending {
+    background-color: var(--danger-color);
+}
+
+.status-done {
+    background-color: var(--success-color);
+}
+
+.action-btn {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    color: white;
+    margin-right: 5px;
+    font-weight: bold;
+    transition: opacity 0.3s;
+}
+
+.btn-edit {
+    background-color: #17a2b8;
+}
+
+.btn-toggle {
+    background-color: var(--warning-color);
+    color: var(--dark-color);
+}
+
+.btn-delete {
+    background-color: var(--danger-color);
+}
+
+.action-btn:hover {
+    opacity: 0.8;
+}
+
+/* --- MODAL --- */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: auto;
+    padding: 0;
+    border: 1px solid #888;
+    width: 90%;
+    max-width: 500px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from {opacity: 0; transform: translateY(-20px);}
+    to {opacity: 1; transform: translateY(0);}
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: var(--primary-color);
+}
+
+.close-btn, .btn-cancel {
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    background: none;
+    border: none;
+}
+
+.close-btn:hover, .close-btn:focus, .btn-cancel:hover {
+    color: var(--dark-color);
+}
+
+#editForm {
+    padding: 20px;
+    display: grid;
+    gap: 15px;
+}
+
+#editForm input, #editForm textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-sizing: border-box;
+    font-size: 1rem;
+}
+
+#editForm input[readonly] {
+    background-color: var(--light-color);
+    cursor: not-allowed;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.modal-footer button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.modal-footer button[type="submit"] {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.modal-footer button[type="submit"]:hover {
+    background-color: #004175;
+}
+
+.btn-cancel {
+    background-color: #6c757d;
+    color: white;
+    font-size: 16px;
+}
+
+.btn-cancel:hover {
+    background-color: #5a6268;
+}
+
+/* --- RESPONSIVE DESIGN --- */
+@media (max-width: 768px) {
+    .hero-content h1 {
+        font-size: 2.5rem;
+    }
+    .controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .filter-buttons {
+        justify-content: center;
+    }
+    table {
+        font-size: 0.9rem;
+    }
+    th, td {
+        padding: 10px;
+    }
+    .action-btn {
+        padding: 6px 8px;
+        font-size: 0.8rem;
+        margin-right: 2px;
+    }
+}
