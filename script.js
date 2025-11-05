@@ -1,9 +1,9 @@
 // script.js
 // Google Sheets Configuration
-const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID'; // Ganti dengan ID Spreadsheet Anda
-const SHEET_NAME = 'TelexData'; // Nama sheet yang akan digunakan
-const CLIENT_ID = 'YOUR_CLIENT_ID'; // Ganti dengan Client ID dari Google Cloud Console
-const API_KEY = 'YOUR_API_KEY'; // Ganti dengan API Key dari Google Cloud Console
+const SPREADSHEET_ID = '1vXAzjiTpVuwTtDe5OoI0cpeKeNnt66dI7Q7zNi7CxnA'; // Ganti dengan ID Spreadsheet Anda
+const SHEET_NAME = 'TELEX_DATA'; // Nama sheet yang akan digunakan
+const CLIENT_ID = '662343193745-2tmbckp2m9je14fces0vulo849tfijmt.apps.googleusercontent.com'; // Ganti dengan Client ID dari Google Cloud Console
+const API_KEY = 'AIzaSyAOimw4XGpxDu5kUMPQ4C0R_CzhI-0-SoE'; // Ganti dengan API Key dari Google Cloud Console
 const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
 
 // Global Variables
@@ -469,4 +469,5 @@ function updateInGoogleSheets(data) {
 function deleteFromGoogleSheets(nomorTelex) {
     console.log('Deleting from Google Sheets:', nomorTelex);
 }
+
 
