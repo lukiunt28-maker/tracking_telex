@@ -43,7 +43,6 @@ const progressPercent = document.getElementById('progressPercent');
 // Initialize App
 document.addEventListener('DOMContentLoaded', function() {
     console.log("DOM siap. Memasang event listener.");
-    // Event Listeners
     loginForm.addEventListener('submit', handleLogin);
     logoutBtn.addEventListener('click', handleGoogleSignOut);
     takeNumberBtn.addEventListener('click', showTelexForm);
@@ -132,9 +131,11 @@ function showTelexForm() {
 // --- GOOGLE SHEETS API FUNCTIONS ---
 function loadTelexData() {
     showLoadingIndicator();
+    console.log(`Mencoba memuat data dari Spreadsheet ID: ${SPREADSHEET_ID}, Sheet: ${SHEET_NAME}`);
     gapi.client.sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID, range: `${SHEET_NAME}!A2:F`
     }).then(function(response) {
+        console.log('Data berhasil dimuat dari Google Sheets:', response);
         const rows = response.result.values;
         if (rows && rows.length > 0) {
             telexData = rows.map(function(row) {
@@ -147,8 +148,17 @@ function loadTelexData() {
         hideLoadingIndicator();
     }, function(error) {
         console.error('Error loading data:', error);
-        alert('Gagal memuat data dari Google Sheets. Periksa konsol (F12) untuk detail error.');
         hideLoadingIndicator();
+        // Tampilkan error yang lebih spesifik
+        let errorMessage = 'Gagal memuat data dari Google Sheets.';
+        if (error.status === 403) {
+            errorMessage += ' Error 403: Akses Dilarang. Pastikan Google Sheet Anda sudah dibagikan dengan "Anyone with the link" dan memiliki izin "Viewer".';
+        } else if (error.status === 404) {
+            errorMessage += ` Error 404: Tidak Ditemukan. Pastikan Spreadsheet ID dan Nama Sheet ('${SHEET_NAME}') sudah benar.`;
+        } else {
+            errorMessage += ` Error ${error.status}: ${error.result.error.message}. Lihat konsol untuk detail lebih lanjut.`;
+        }
+        alert(errorMessage);
     });
 }
 
@@ -248,15 +258,10 @@ function initGapiClient() {
         scope: SCOPES
     }).then(function () {
         console.log("gapi.client.init BERHASIL! Google API siap digunakan.");
-        
-        // Setup listener untuk perubahan status login
         gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
-
-        // Cek status login awal
         const isSignedIn = gapi.auth2.getAuthInstance().isSignedIn.get();
         console.log("Status login awal:", isSignedIn);
         updateSigninStatus(isSignedIn);
-
     }, function(error) {
         console.error('GAGAL saat menginisialisasi GAPI client. Detail error:', error);
         alert(`Gagal memuat Google API. Error: ${error.error || 'Tidak diketahui'}. Periksa konsol (F12) dan pengaturan Google Cloud Console Anda.`);
