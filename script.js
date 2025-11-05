@@ -470,4 +470,3 @@ function deleteFromGoogleSheets(nomorTelex) {
     console.log('Deleting from Google Sheets:', nomorTelex);
 }
 
-
