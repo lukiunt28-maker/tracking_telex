@@ -24,7 +24,6 @@
                 <button type="submit">Login</button>
             </form>
             
-            <!-- PEMBAHARUAN: Tombol Login Google -->
             <div class="divider">
                 <span>atau</span>
             </div>
@@ -66,7 +65,6 @@
                 <h2>Ambil Nomor Telex Baru</h2>
                 <button id="takeNumberBtn">🚀 Ambil Nomor Telex Baru</button>
                 
-                <!-- FORM INPUT TELEX (Awalnya Tersembunyi) -->
                 <form id="telexInputForm" style="display: none; margin-top: 20px;">
                     <input type="text" id="generatedNomorTelex" placeholder="Nomor Telex" readonly>
                     <textarea id="telexBody" rows="15" placeholder="Isi Telex"></textarea>
@@ -133,8 +131,6 @@
         </div>
     </div>
 
-    <!-- PEMBAHARUAN KRUSIAL: Script dipindahkan ke akhir body -->
-    <!-- Ini memastikan semua elemen HTML sudah ada sebelum JavaScript dijalankan -->
     <script src="https://apis.google.com/js/api.js?onload=gapiLoaded"></script>
     <script src="script.js"></script>
 </body>
