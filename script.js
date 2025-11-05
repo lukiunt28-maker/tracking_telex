@@ -1,247 +1,471 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const telexForm = document.getElementById('telexForm');
-    const telexTableBody = document.getElementById('telexTableBody');
-    const exportBtn = document.getElementById('exportBtn');
-    const filterButtons = document.querySelectorAll('.filter-btn');
+// script.js
+// Google Sheets Configuration
+const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID'; // Ganti dengan ID Spreadsheet Anda
+const SHEET_NAME = 'TelexData'; // Nama sheet yang akan digunakan
+const CLIENT_ID = 'YOUR_CLIENT_ID'; // Ganti dengan Client ID dari Google Cloud Console
+const API_KEY = 'YOUR_API_KEY'; // Ganti dengan API Key dari Google Cloud Console
+const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
 
-    // Elemen Modal
-    const editModal = document.getElementById('editModal');
-    const editForm = document.getElementById('editForm');
-    const closeBtn = document.querySelector('.close-btn');
-    const btnCancel = document.querySelector('.btn-cancel');
+// Global Variables
+let telexData = [];
+let filteredData = [];
+let currentFilter = 'all';
+let currentUser = null;
 
-    // Elemen Pencarian
-    const searchInput = document.getElementById('searchInput');
-    const clearSearchBtn = document.getElementById('clearSearchBtn');
+// DOM Elements
+const loginScreen = document.getElementById('loginScreen');
+const mainApp = document.getElementById('mainApp');
+const loginForm = document.getElementById('loginForm');
+const logoutBtn = document.getElementById('logoutBtn');
+const userInitials = document.getElementById('userInitials');
+const takeNumberBtn = document.getElementById('takeNumberBtn');
+const telexInputForm = document.getElementById('telexInputForm');
+const generatedNomorTelex = document.getElementById('generatedNomorTelex');
+const telexBody = document.getElementById('telexBody');
+const searchInput = document.getElementById('searchInput');
+const clearSearchBtn = document.getElementById('clearSearchBtn');
+const exportBtn = document.getElementById('exportBtn');
+const filterButtons = document.querySelectorAll('.filter-btn');
+const telexTableBody = document.getElementById('telexTableBody');
+const editModal = document.getElementById('editModal');
+const editForm = document.getElementById('editForm');
+const closeBtn = document.querySelector('.close-btn');
+const btnCancel = document.querySelector('.btn-cancel');
 
-    let telexData = JSON.parse(localStorage.getItem('telexData')) || [];
-    let currentFilter = 'all';
-    let searchTerm = '';
+// Dashboard Elements
+const totalCount = document.getElementById('totalCount');
+const pendingCount = document.getElementById('pendingCount');
+const doneCount = document.getElementById('doneCount');
+const progressPercent = document.getElementById('progressPercent');
 
-    if (telexData.length > 0 && !telexData[0].nomorTelex) {
-        alert('Struktur data lama terdeteksi. Data akan dihapus untuk menghindari error.');
-        localStorage.removeItem('telexData');
-        telexData = [];
+// Initialize App
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if user is already logged in
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        showMainApp();
     }
-
-    const updateDashboard = () => {
-        const totalCount = telexData.length;
-        const pendingCount = telexData.filter(item => !item.isDone).length;
-        const doneCount = telexData.filter(item => item.isDone).length;
-        const progressPercent = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
-
-        document.getElementById('totalCount').innerText = totalCount;
-        document.getElementById('pendingCount').innerText = pendingCount;
-        document.getElementById('doneCount').innerText = doneCount;
-        document.getElementById('progressPercent').innerText = `${progressPercent}%`;
-    };
-
-    const saveData = () => {
-        localStorage.setItem('telexData', JSON.stringify(telexData));
-    };
-
-    const renderTable = () => {
-        telexTableBody.innerHTML = '';
-
-        // 1. Filter berdasarkan status
-        let filteredData = telexData.filter(item => {
-            if (currentFilter === 'pending') return !item.isDone;
-            if (currentFilter === 'done') return item.isDone;
-            return true;
+    
+    // Event Listeners
+    loginForm.addEventListener('submit', handleLogin);
+    logoutBtn.addEventListener('click', handleLogout);
+    takeNumberBtn.addEventListener('click', showTelexForm);
+    telexInputForm.addEventListener('submit', saveTelex);
+    searchInput.addEventListener('input', handleSearch);
+    clearSearchBtn.addEventListener('click', clearSearch);
+    exportBtn.addEventListener('click', exportToCSV);
+    
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            currentFilter = this.getAttribute('data-filter');
+            filterData();
         });
-
-        // 2. Filter berdasarkan kata kunci pencarian
-        if (searchTerm) {
-            filteredData = filteredData.filter(item => {
-                const term = searchTerm.toLowerCase();
-                return (
-                    item.nomorTelex.toLowerCase().includes(term) ||
-                    item.picWidebody.toLowerCase().includes(term) ||
-                    (item.picNarrowbody && item.picNarrowbody.toLowerCase().includes(term)) ||
-                    item.remark.toLowerCase().includes(term)
-                );
-            });
-        }
-
-        if (filteredData.length === 0) {
-            const colSpan = 8;
-            const message = searchTerm ? `Tidak ada hasil untuk "${searchTerm}".` : 'Tidak ada data untuk ditampilkan.';
-            telexTableBody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align:center;">${message}</td></tr>`;
-            return;
-        }
-
-        filteredData.forEach((item, index) => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${index + 1}</td>
-                <td>${item.nomorTelex}</td>
-                <td>${item.picWidebody}</td>
-                <td>${item.picNarrowbody || '-'}</td>
-                <td>${item.remark}</td>
-                <td>${item.tanggalDiterima}</td>
-                <td><span class="status-badge ${item.isDone ? 'status-done' : 'status-pending'}">${item.isDone ? 'Sudah Dikerjakan' : 'Belum Dikerjakan'}</span></td>
-                <td>
-                    <button class="action-btn btn-edit" onclick="openEditModal('${item.nomorTelex}')">✏️ Edit</button>
-                    <button class="action-btn btn-toggle" onclick="toggleStatus('${item.nomorTelex}')">${item.isDone ? 'Batalkan' : 'Selesaikan'}</button>
-                    <button class="action-btn btn-delete" onclick="deleteTelex('${item.nomorTelex}')">Hapus</button>
-                </td>
-            `;
-            telexTableBody.appendChild(row);
-        });
-    };
-
-    // --- FUNGSI MODAL ---
-    window.openEditModal = (nomorTelex) => {
-        const telexToEdit = telexData.find(t => t.nomorTelex === nomorTelex);
-        if (telexToEdit) {
-            document.getElementById('editNomorTelex').value = telexToEdit.nomorTelex;
-            document.getElementById('editPicWidebody').value = telexToEdit.picWidebody;
-            document.getElementById('editPicNarrowbody').value = telexToEdit.picNarrowbody || '';
-            document.getElementById('editRemark').value = telexToEdit.remark;
-            editModal.style.display = 'flex';
-        }
-    };
-
-    const closeModal = () => {
-        editModal.style.display = 'none';
-        editForm.reset();
-    };
-
-    closeBtn.onclick = closeModal;
-    btnCancel.onclick = closeModal;
-    window.onclick = (event) => {
-        if (event.target == editModal) {
+    });
+    
+    editForm.addEventListener('submit', saveEdit);
+    closeBtn.addEventListener('click', closeModal);
+    btnCancel.addEventListener('click', closeModal);
+    window.addEventListener('click', function(e) {
+        if (e.target === editModal) {
             closeModal();
         }
-    };
-    // --- AKHIR FUNGSI MODAL ---
-
-    // --- EVENT LISTENER PENCARIAN ---
-    searchInput.addEventListener('input', (e) => {
-        searchTerm = e.target.value;
-        if (searchTerm) {
-            clearSearchBtn.style.display = 'block';
-        } else {
-            clearSearchBtn.style.display = 'none';
-        }
-        renderTable();
     });
+    
+    // Initialize Google API
+    gapiLoaded();
+});
 
-    clearSearchBtn.addEventListener('click', () => {
-        searchInput.value = '';
-        searchTerm = '';
-        clearSearchBtn.style.display = 'none';
-        renderTable();
-    });
-    // --- AKHIR EVENT LISTENER PENCARIAN ---
-
-    telexForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const newTelex = {
-            nomorTelex: document.getElementById('nomorTelex').value,
-            picWidebody: document.getElementById('picWidebody').value,
-            picNarrowbody: document.getElementById('picNarrowbody').value,
-            remark: document.getElementById('remark').value,
-            tanggalDiterima: new Date().toLocaleString('id-ID'),
-            isDone: false
+// Login Function
+function handleLogin(e) {
+    e.preventDefault();
+    const username = document.getElementById('loginUsername').value;
+    const password = document.getElementById('loginPassword').value;
+    
+    // Simple authentication (in real app, this should be validated against a backend)
+    if (username && password) {
+        currentUser = {
+            username: username,
+            initials: username.substring(0, 2).toUpperCase()
         };
+        
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        showMainApp();
+    } else {
+        alert('Username dan password harus diisi!');
+    }
+}
 
-        if (newTelex.picWidebody.trim() !== '' && newTelex.picNarrowbody.trim() !== '') {
-            newTelex.isDone = true;
-            newTelex.tanggalSelesai = new Date().toLocaleString('id-ID');
+// Logout Function
+function handleLogout() {
+    localStorage.removeItem('currentUser');
+    currentUser = null;
+    loginScreen.style.display = 'block';
+    mainApp.style.display = 'none';
+    document.getElementById('loginUsername').value = '';
+    document.getElementById('loginPassword').value = '';
+}
+
+// Show Main App
+function showMainApp() {
+    loginScreen.style.display = 'none';
+    mainApp.style.display = 'block';
+    userInitials.textContent = currentUser.initials;
+    
+    // Load data from Google Sheets
+    loadTelexData();
+}
+
+// Show Telex Form
+function showTelexForm() {
+    // Generate new telex number
+    const today = new Date();
+    const dateStr = today.getFullYear().toString() + 
+                   (today.getMonth() + 1).toString().padStart(2, '0') + 
+                   today.getDate().toString().padStart(2, '0');
+    
+    // Get the last number from the data
+    let lastNumber = 0;
+    if (telexData.length > 0) {
+        const todayNumbers = telexData.filter(item => 
+            item.nomorTelex && item.nomorTelex.startsWith(dateStr)
+        );
+        
+        if (todayNumbers.length > 0) {
+            const lastTelex = todayNumbers.reduce((prev, current) => 
+                (prev.nomorTelex > current.nomorTelex) ? prev : current
+            );
+            const lastNumStr = lastTelex.nomorTelex.split('-')[1];
+            lastNumber = parseInt(lastNumStr);
         }
+    }
+    
+    const newNumber = (lastNumber + 1).toString().padStart(3, '0');
+    const newNomorTelex = `TLX-${dateStr}-${newNumber}`;
+    
+    generatedNomorTelex.value = newNomorTelex;
+    telexInputForm.style.display = 'block';
+    telexBody.focus();
+}
 
-        if (telexData.some(t => t.nomorTelex === newTelex.nomorTelex)) {
-            alert('Nomor Telex sudah ada! Gunakan nomor yang unik.');
-            return;
-        }
-
-        telexData.push(newTelex);
-        saveData();
-        renderTable();
-        updateDashboard();
-        telexForm.reset();
-    });
-
-    editForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const nomorTelex = document.getElementById('editNomorTelex').value;
-        const itemIndex = telexData.findIndex(t => t.nomorTelex === nomorTelex);
-
-        if (itemIndex !== -1) {
-            telexData[itemIndex].picWidebody = document.getElementById('editPicWidebody').value;
-            telexData[itemIndex].picNarrowbody = document.getElementById('editPicNarrowbody').value;
-            telexData[itemIndex].remark = document.getElementById('editRemark').value;
-
-            if (telexData[itemIndex].picWidebody.trim() !== '' && telexData[itemIndex].picNarrowbody.trim() !== '') {
-                telexData[itemIndex].isDone = true;
-                if(!telexData[itemIndex].tanggalSelesai) {
-                    telexData[itemIndex].tanggalSelesai = new Date().toLocaleString('id-ID');
-                }
-            } else {
-                telexData[itemIndex].isDone = false;
-                delete telexData[itemIndex].tanggalSelesai;
-            }
-
-            saveData();
-            renderTable();
-            updateDashboard();
-            closeModal();
-        }
-    });
-
-    window.toggleStatus = (nomorTelex) => {
-        const item = telexData.find(t => t.nomorTelex === nomorTelex);
-        if (item) {
-            item.isDone = !item.isDone;
-            if(item.isDone) {
-                item.tanggalSelesai = new Date().toLocaleString('id-ID');
-            } else {
-                delete item.tanggalSelesai;
-            }
-            saveData();
-            renderTable();
-            updateDashboard();
-        }
+// Save Telex
+function saveTelex(e) {
+    e.preventDefault();
+    
+    const newTelex = {
+        nomorTelex: generatedNomorTelex.value,
+        picWidebody: '',
+        picNarrowbody: '',
+        remark: telexBody.value,
+        tanggalDibuat: new Date().toISOString(),
+        status: 'pending'
     };
-
-    window.deleteTelex = (nomorTelex) => {
-        if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
-            telexData = telexData.filter(t => t.nomorTelex !== nomorTelex);
-            saveData();
-            renderTable();
-            updateDashboard();
-        }
-    };
-
-    filterButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            filterButtons.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentFilter = btn.dataset.filter;
-            renderTable();
-        });
-    });
-
-    exportBtn.addEventListener('click', () => {
-        let csv = '\ufeffNo,Nomor Telex,PIC Widebody,PIC Narrowbody,Remark,Tanggal Diterima,Tanggal Selesai,Status\n';
-        telexData.forEach((item, index) => {
-            const status = item.isDone ? 'Sudah Dikerjakan' : 'Belum Dikerjakan';
-            const tglSelesai = item.tanggalSelesai || '-';
-            csv += `"${index + 1}","${item.nomorTelex}","${item.picWidebody}","${item.picNarrowbody || '-'}","${item.remark}","${item.tanggalDiterima}","${tglSelesai}","${status}"\n`;
-        });
-
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', `laporan_telex_${new Date().toISOString().slice(0,10)}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    });
-
+    
+    // Add to data array
+    telexData.push(newTelex);
+    
+    // Save to Google Sheets
+    saveToGoogleSheets(newTelex);
+    
+    // Reset form
+    telexInputForm.style.display = 'none';
+    telexBody.value = '';
+    
+    // Refresh table
     renderTable();
     updateDashboard();
-});
+}
+
+// Load Telex Data from Google Sheets
+function loadTelexData() {
+    // In a real implementation, this would fetch data from Google Sheets
+    // For now, we'll use mock data
+    telexData = [
+        {
+            nomorTelex: 'TLX-20230501-001',
+            picWidebody: 'John Doe',
+            picNarrowbody: 'Jane Smith',
+            remark: 'Sample telex message for testing purposes',
+            tanggalDibuat: '2023-05-01T10:30:00.000Z',
+            status: 'done'
+        },
+        {
+            nomorTelex: 'TLX-20230501-002',
+            picWidebody: 'Alice Johnson',
+            picNarrowbody: '',
+            remark: 'Another sample telex message',
+            tanggalDibuat: '2023-05-01T14:15:00.000Z',
+            status: 'pending'
+        }
+    ];
+    
+    filteredData = [...telexData];
+    renderTable();
+    updateDashboard();
+}
+
+// Save to Google Sheets
+function saveToGoogleSheets(data) {
+    // In a real implementation, this would save data to Google Sheets
+    console.log('Saving to Google Sheets:', data);
+}
+
+// Render Table
+function renderTable() {
+    telexTableBody.innerHTML = '';
+    
+    if (filteredData.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = '<td colspan="8" style="text-align: center;">Tidak ada data telex</td>';
+        telexTableBody.appendChild(row);
+        return;
+    }
+    
+    filteredData.forEach((telex, index) => {
+        const row = document.createElement('tr');
+        
+        const statusClass = telex.status === 'done' ? 'status-done' : 'status-pending';
+        const statusText = telex.status === 'done' ? 'Sudah Dikerjakan' : 'Belum Dikerjakan';
+        
+        const formattedDate = new Date(telex.tanggalDibuat).toLocaleDateString('id-ID');
+        
+        row.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${telex.nomorTelex}</td>
+            <td>${telex.picWidebody || '-'}</td>
+            <td>${telex.picNarrowbody || '-'}</td>
+            <td>${telex.remark}</td>
+            <td>${formattedDate}</td>
+            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+            <td>
+                <div class="action-buttons">
+                    <button class="btn-edit" onclick="editTelex('${telex.nomorTelex}')">Edit</button>
+                    <button class="btn-delete" onclick="deleteTelex('${telex.nomorTelex}')">Hapus</button>
+                    <button class="btn-status" onclick="toggleStatus('${telex.nomorTelex}')">
+                        ${telex.status === 'done' ? 'Batal' : 'Selesai'}
+                    </button>
+                </div>
+            </td>
+        `;
+        
+        telexTableBody.appendChild(row);
+    });
+}
+
+// Update Dashboard
+function updateDashboard() {
+    const total = telexData.length;
+    const pending = telexData.filter(item => item.status === 'pending').length;
+    const done = telexData.filter(item => item.status === 'done').length;
+    const progress = total > 0 ? Math.round((done / total) * 100) : 0;
+    
+    totalCount.textContent = total;
+    pendingCount.textContent = pending;
+    doneCount.textContent = done;
+    progressPercent.textContent = `${progress}%`;
+}
+
+// Search Function
+function handleSearch() {
+    const searchTerm = searchInput.value.toLowerCase();
+    
+    if (searchTerm === '') {
+        filteredData = [...telexData];
+    } else {
+        filteredData = telexData.filter(telex => 
+            telex.nomorTelex.toLowerCase().includes(searchTerm) ||
+            (telex.picWidebody && telex.picWidebody.toLowerCase().includes(searchTerm)) ||
+            (telex.picNarrowbody && telex.picNarrowbody.toLowerCase().includes(searchTerm)) ||
+            telex.remark.toLowerCase().includes(searchTerm)
+        );
+    }
+    
+    // Apply current filter
+    filterData();
+}
+
+// Clear Search
+function clearSearch() {
+    searchInput.value = '';
+    filteredData = [...telexData];
+    filterData();
+}
+
+// Filter Data
+function filterData() {
+    let tempData = [...filteredData];
+    
+    if (currentFilter !== 'all') {
+        tempData = tempData.filter(telex => telex.status === currentFilter);
+    }
+    
+    // Re-render table with filtered data
+    telexTableBody.innerHTML = '';
+    
+    if (tempData.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = '<td colspan="8" style="text-align: center;">Tidak ada data telex</td>';
+        telexTableBody.appendChild(row);
+        return;
+    }
+    
+    tempData.forEach((telex, index) => {
+        const row = document.createElement('tr');
+        
+        const statusClass = telex.status === 'done' ? 'status-done' : 'status-pending';
+        const statusText = telex.status === 'done' ? 'Sudah Dikerjakan' : 'Belum Dikerjakan';
+        
+        const formattedDate = new Date(telex.tanggalDibuat).toLocaleDateString('id-ID');
+        
+        row.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${telex.nomorTelex}</td>
+            <td>${telex.picWidebody || '-'}</td>
+            <td>${telex.picNarrowbody || '-'}</td>
+            <td>${telex.remark}</td>
+            <td>${formattedDate}</td>
+            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+            <td>
+                <div class="action-buttons">
+                    <button class="btn-edit" onclick="editTelex('${telex.nomorTelex}')">Edit</button>
+                    <button class="btn-delete" onclick="deleteTelex('${telex.nomorTelex}')">Hapus</button>
+                    <button class="btn-status" onclick="toggleStatus('${telex.nomorTelex}')">
+                        ${telex.status === 'done' ? 'Batal' : 'Selesai'}
+                    </button>
+                </div>
+            </td>
+        `;
+        
+        telexTableBody.appendChild(row);
+    });
+}
+
+// Edit Telex
+function editTelex(nomorTelex) {
+    const telex = telexData.find(item => item.nomorTelex === nomorTelex);
+    
+    if (telex) {
+        document.getElementById('editNomorTelex').value = telex.nomorTelex;
+        document.getElementById('editPicWidebody').value = telex.picWidebody || '';
+        document.getElementById('editPicNarrowbody').value = telex.picNarrowbody || '';
+        document.getElementById('editRemark').value = telex.remark;
+        
+        editModal.style.display = 'block';
+    }
+}
+
+// Save Edit
+function saveEdit(e) {
+    e.preventDefault();
+    
+    const nomorTelex = document.getElementById('editNomorTelex').value;
+    const telexIndex = telexData.findIndex(item => item.nomorTelex === nomorTelex);
+    
+    if (telexIndex !== -1) {
+        telexData[telexIndex].picWidebody = document.getElementById('editPicWidebody').value;
+        telexData[telexIndex].picNarrowbody = document.getElementById('editPicNarrowbody').value;
+        telexData[telexIndex].remark = document.getElementById('editRemark').value;
+        
+        // Update in Google Sheets
+        updateInGoogleSheets(telexData[telexIndex]);
+        
+        // Refresh table
+        renderTable();
+        
+        // Close modal
+        closeModal();
+    }
+}
+
+// Delete Telex
+function deleteTelex(nomorTelex) {
+    if (confirm(`Apakah Anda yakin ingin menghapus telex ${nomorTelex}?`)) {
+        const telexIndex = telexData.findIndex(item => item.nomorTelex === nomorTelex);
+        
+        if (telexIndex !== -1) {
+            // Delete from Google Sheets
+            deleteFromGoogleSheets(nomorTelex);
+            
+            // Remove from array
+            telexData.splice(telexIndex, 1);
+            
+            // Refresh table
+            filteredData = [...telexData];
+            filterData();
+            updateDashboard();
+        }
+    }
+}
+
+// Toggle Status
+function toggleStatus(nomorTelex) {
+    const telexIndex = telexData.findIndex(item => item.nomorTelex === nomorTelex);
+    
+    if (telexIndex !== -1) {
+        telexData[telexIndex].status = telexData[telexIndex].status === 'done' ? 'pending' : 'done';
+        
+        // Update in Google Sheets
+        updateInGoogleSheets(telexData[telexIndex]);
+        
+        // Refresh table
+        renderTable();
+        updateDashboard();
+    }
+}
+
+// Close Modal
+function closeModal() {
+    editModal.style.display = 'none';
+}
+
+// Export to CSV
+function exportToCSV() {
+    let csv = 'No,Nomor Telex,PIC Widebody,PIC Narrowbody,Remark,Tanggal Dibuat,Status\n';
+    
+    telexData.forEach((telex, index) => {
+        const statusText = telex.status === 'done' ? 'Sudah Dikerjakan' : 'Belum Dikerjakan';
+        const formattedDate = new Date(telex.tanggalDibuat).toLocaleDateString('id-ID');
+        
+        csv += `${index + 1},"${telex.nomorTelex}","${telex.picWidebody || ''}","${telex.picNarrowbody || ''}","${telex.remark}","${formattedDate}","${statusText}"\n`;
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', `telex_data_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+// Google Sheets API Functions
+function gapiLoaded() {
+    gapi.load('client:auth2', initGapiClient);
+}
+
+function initGapiClient() {
+    gapi.client.init({
+        apiKey: API_KEY,
+        clientId: CLIENT_ID,
+        discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
+        scope: SCOPES
+    }).then(function() {
+        // In a real implementation, you would handle authentication here
+        console.log('Google API initialized');
+    }, function(error) {
+        console.error('Error initializing Google API:', error);
+    });
+}
+
+// In a real implementation, these functions would interact with Google Sheets
+function updateInGoogleSheets(data) {
+    console.log('Updating in Google Sheets:', data);
+}
+
+function deleteFromGoogleSheets(nomorTelex) {
+    console.log('Deleting from Google Sheets:', nomorTelex);
+}
