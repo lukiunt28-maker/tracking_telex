@@ -42,9 +42,11 @@ const progressPercent = document.getElementById('progressPercent');
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM sudah siap. Event listener akan dipasang."); // TAMBAHKAN INI
+
     // Event Listeners
-    loginForm.addEventListener('submit', handleLogin); // Form login lama, bisa dihapus atau dibiarkan
-    logoutBtn.addEventListener('click', handleGoogleSignOut); // Gunakan logout Google
+    loginForm.addEventListener('submit', handleLogin);
+    logoutBtn.addEventListener('click', handleGoogleSignOut);
     takeNumberBtn.addEventListener('click', showTelexForm);
     telexInputForm.addEventListener('submit', saveTelex);
     searchInput.addEventListener('input', handleSearch);
@@ -71,7 +73,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Event Listener untuk tombol login Google
     if (googleSignInBtn) {
-        googleSignInBtn.addEventListener('click', handleGoogleSignIn);
+        googleSignInBtn.addEventListener('click', function() {
+            console.log("Tombol 'Masuk dengan Google' diklik!"); // TAMBAHKAN INI
+            handleGoogleSignIn();
+        });
+    } else {
+        console.error("Error: Tombol dengan ID 'googleSignInBtn' tidak ditemukan!"); // TAMBAHKAN INI
     }
 });
 
@@ -85,6 +92,7 @@ function handleLogin(e) {
 
 // Fungsi untuk menangani login dengan Google
 function handleGoogleSignIn() {
+    console.log("Fungsi handleGoogleSignIn() dipanggil."); // TAMBAHKAN INI
     gapi.auth2.getAuthInstance().signIn().then(function() {
         console.log('User signed in.');
         showMainApp(); 
@@ -511,16 +519,19 @@ function showNotification(message, type) {
 // --- GOOGLE API INITIALIZATION ---
 
 function gapiLoaded() {
+    console.log("Google API script berhasil dimuat. Memulai inisialisasi client..."); // TAMBAHKAN INI
     gapi.load('client:auth2', initGapiClient);
 }
 
 function initGapiClient() {
+    console.log("gapi.load selesai. Memulai gapi.client.init..."); // TAMBAHKAN INI
     gapi.client.init({
         apiKey: API_KEY,
         clientId: CLIENT_ID,
         discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
         scope: SCOPES
     }).then(function () {
+        console.log("gapi.client.init berhasil. Memeriksa status login..."); // TAMBAHKAN INI
         gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
         const isSignedIn = gapi.auth2.getAuthInstance().isSignedIn.get();
         if (isSignedIn) {
@@ -529,8 +540,8 @@ function initGapiClient() {
             loginScreen.style.display = 'block';
         }
     }, function(error) {
-        console.error('Error initializing GAPI client', error);
-        alert('Gagal menginisialisasi Google API. Periksa Client ID dan API Key Anda.');
+        console.error('Error saat menginisialisasi GAPI client', error); // TAMBAHKAN INI
+        alert('Gagal menginisialisasi Google API. Periksa Client ID dan API Key Anda. Lihat konsol untuk detail error.');
     });
 }
 
