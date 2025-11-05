@@ -42,6 +42,7 @@ const progressPercent = document.getElementById('progressPercent');
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM siap. Memasang event listener.");
     // Event Listeners
     loginForm.addEventListener('submit', handleLogin);
     logoutBtn.addEventListener('click', handleGoogleSignOut);
@@ -64,13 +65,13 @@ document.addEventListener('DOMContentLoaded', function() {
     closeBtn.addEventListener('click', closeModal);
     btnCancel.addEventListener('click', closeModal);
     window.addEventListener('click', function(e) {
-        if (e.target === editModal) {
-            closeModal();
-        }
+        if (e.target === editModal) { closeModal(); }
     });
 
     if (googleSignInBtn) {
         googleSignInBtn.addEventListener('click', handleGoogleSignIn);
+    } else {
+        console.error("Tombol Google Sign-In tidak ditemukan!");
     }
 });
 
@@ -81,18 +82,19 @@ function handleLogin(e) {
 }
 
 function handleGoogleSignIn() {
+    console.log("Tombol login diklik. Memulai proses signIn...");
     gapi.auth2.getAuthInstance().signIn().then(function() {
-        console.log('User signed in.');
+        console.log('Login berhasil!');
         showMainApp(); 
     }).catch(function(error) {
-        console.error('Error signing in:', error);
+        console.error('Error saat login:', error);
         alert('Gagal masuk dengan Google. Periksa konsol (F12) untuk detail error.');
     });
 }
 
 function handleGoogleSignOut() {
     gapi.auth2.getAuthInstance().signOut().then(function() {
-        console.log('User signed out.');
+        console.log('Logout berhasil.');
         loginScreen.style.display = 'block';
         mainApp.style.display = 'none';
     });
@@ -131,8 +133,7 @@ function showTelexForm() {
 function loadTelexData() {
     showLoadingIndicator();
     gapi.client.sheets.spreadsheets.values.get({
-        spreadsheetId: SPREADSHEET_ID,
-        range: `${SHEET_NAME}!A2:F`
+        spreadsheetId: SPREADSHEET_ID, range: `${SHEET_NAME}!A2:F`
     }).then(function(response) {
         const rows = response.result.values;
         if (rows && rows.length > 0) {
@@ -155,8 +156,7 @@ function saveTelex(e) {
     e.preventDefault();
     const newTelex = { nomorTelex: generatedNomorTelex.value, picWidebody: '', picNarrowbody: '', remark: telexBody.value, tanggalDibuat: new Date().toISOString(), status: 'pending' };
     saveToGoogleSheets(newTelex);
-    telexInputForm.style.display = 'none';
-    telexBody.value = '';
+    telexInputForm.style.display = 'none'; telexBody.value = '';
 }
 
 function saveToGoogleSheets(data) {
@@ -164,10 +164,7 @@ function saveToGoogleSheets(data) {
     const values = [[data.nomorTelex, data.picWidebody, data.picNarrowbody, data.remark, data.tanggalDibuat, data.status]];
     gapi.client.sheets.spreadsheets.values.append({
         spreadsheetId: SPREADSHEET_ID, range: `${SHEET_NAME}!A:F`, valueInputOption: 'USER_ENTERED', resource: { values: values }
-    }).then(function(response) {
-        console.log('Data saved successfully'); hideLoadingIndicator();
-        showNotification('Data berhasil disimpan!', 'success'); loadTelexData();
-    }, function(error) { console.error('Error saving data:', error); alert('Gagal menyimpan data. Periksa konsol.'); hideLoadingIndicator(); });
+    }).then(function(response) { console.log('Data saved successfully'); hideLoadingIndicator(); showNotification('Data berhasil disimpan!', 'success'); loadTelexData(); }, function(error) { console.error('Error saving data:', error); alert('Gagal menyimpan data. Periksa konsol.'); hideLoadingIndicator(); });
 }
 
 function updateInGoogleSheets(data) {
@@ -188,7 +185,7 @@ function deleteFromGoogleSheets(nomorTelex) {
 }
 
 // --- DATA MANIPULATION & UI RENDER FUNCTIONS ---
-function renderTable() { /* ... (sama seperti sebelumnya) ... */
+function renderTable() {
     telexTableBody.innerHTML = ''; if (filteredData.length === 0) { const row = document.createElement('tr'); row.innerHTML = '<td colspan="8" style="text-align: center;">Tidak ada data telex</td>'; telexTableBody.appendChild(row); return; }
     filteredData.forEach((telex, index) => {
         const row = document.createElement('tr'); const statusClass = telex.status === 'done' ? 'status-done' : 'status-pending'; const statusText = telex.status === 'done' ? 'Sudah Dikerjakan' : 'Belum Dikerjakan'; const formattedDate = new Date(telex.tanggalDibuat).toLocaleDateString('id-ID');
@@ -196,15 +193,15 @@ function renderTable() { /* ... (sama seperti sebelumnya) ... */
         telexTableBody.appendChild(row);
     });
 }
-function updateDashboard() { /* ... (sama seperti sebelumnya) ... */
+function updateDashboard() {
     const total = telexData.length; const pending = telexData.filter(item => item.status === 'pending').length; const done = telexData.filter(item => item.status === 'done').length; const progress = total > 0 ? Math.round((done / total) * 100) : 0;
     totalCount.textContent = total; pendingCount.textContent = pending; doneCount.textContent = done; progressPercent.textContent = `${progress}%`;
 }
-function handleSearch() { /* ... (sama seperti sebelumnya) ... */
+function handleSearch() {
     const searchTerm = searchInput.value.toLowerCase(); if (searchTerm === '') { filteredData = [...telexData]; } else { filteredData = telexData.filter(telex => telex.nomorTelex.toLowerCase().includes(searchTerm) || (telex.picWidebody && telex.picWidebody.toLowerCase().includes(searchTerm)) || (telex.picNarrowbody && telex.picNarrowbody.toLowerCase().includes(searchTerm)) || telex.remark.toLowerCase().includes(searchTerm)); } filterData();
 }
 function clearSearch() { searchInput.value = ''; filteredData = [...telexData]; filterData(); }
-function filterData() { /* ... (sama seperti sebelumnya) ... */
+function filterData() {
     let tempData = [...filteredData]; if (currentFilter !== 'all') { tempData = tempData.filter(telex => telex.status === currentFilter); }
     telexTableBody.innerHTML = ''; if (tempData.length === 0) { const row = document.createElement('tr'); row.innerHTML = '<td colspan="8" style="text-align: center;">Tidak ada data telex</td>'; telexTableBody.appendChild(row); return; }
     tempData.forEach((telex, index) => {
@@ -213,20 +210,20 @@ function filterData() { /* ... (sama seperti sebelumnya) ... */
         telexTableBody.appendChild(row);
     });
 }
-function editTelex(nomorTelex) { /* ... (sama seperti sebelumnya) ... */
+function editTelex(nomorTelex) {
     const telex = telexData.find(item => item.nomorTelex === nomorTelex); if (telex) { document.getElementById('editNomorTelex').value = telex.nomorTelex; document.getElementById('editPicWidebody').value = telex.picWidebody || ''; document.getElementById('editPicNarrowbody').value = telex.picNarrowbody || ''; document.getElementById('editRemark').value = telex.remark; editModal.style.display = 'block'; }
 }
-function saveEdit(e) { /* ... (sama seperti sebelumnya) ... */
+function saveEdit(e) {
     e.preventDefault(); const nomorTelex = document.getElementById('editNomorTelex').value; const telexIndex = telexData.findIndex(item => item.nomorTelex === nomorTelex); if (telexIndex !== -1) { telexData[telexIndex].picWidebody = document.getElementById('editPicWidebody').value; telexData[telexIndex].picNarrowbody = document.getElementById('editPicNarrowbody').value; telexData[telexIndex].remark = document.getElementById('editRemark').value; updateInGoogleSheets(telexData[telexIndex]); closeModal(); }
 }
-function deleteTelex(nomorTelex) { /* ... (sama seperti sebelumnya) ... */
+function deleteTelex(nomorTelex) {
     if (confirm(`Apakah Anda yakin ingin menghapus telex ${nomorTelex}?`)) { deleteFromGoogleSheets(nomorTelex); }
 }
-function toggleStatus(nomorTelex) { /* ... (sama seperti sebelumnya) ... */
+function toggleStatus(nomorTelex) {
     const telexIndex = telexData.findIndex(item => item.nomorTelex === nomorTelex); if (telexIndex !== -1) { telexData[telexIndex].status = telexData[telexIndex].status === 'done' ? 'pending' : 'done'; updateInGoogleSheets(telexData[telexIndex]); }
 }
 function closeModal() { editModal.style.display = 'none'; }
-function exportToCSV() { /* ... (sama seperti sebelumnya) ... */
+function exportToCSV() {
     let csv = 'No,Nomor Telex,PIC Widebody,PIC Narrowbody,Remark,Tanggal Dibuat,Status\n'; telexData.forEach((telex, index) => { const statusText = telex.status === 'done' ? 'Sudah Dikerjakan' : 'Belum Dikerjakan'; const formattedDate = new Date(telex.tanggalDibuat).toLocaleDateString('id-ID'); csv += `${index + 1},"${telex.nomorTelex}","${telex.picWidebody || ''}","${telex.picNarrowbody || ''}","${telex.remark}","${formattedDate}","${statusText}"\n`; });
     const blob = new Blob([csv], { type: 'text/csv' }); const url = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.setAttribute('hidden', ''); a.setAttribute('href', url); a.setAttribute('download', `telex_data_${new Date().toISOString().split('T')[0]}.csv`); document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
@@ -236,13 +233,29 @@ function showLoadingIndicator() { if (document.getElementById('loadingIndicator'
 function hideLoadingIndicator() { const loadingElement = document.getElementById('loadingIndicator'); if (loadingElement) { loadingElement.remove(); } }
 function showNotification(message, type) { const notification = document.createElement('div'); notification.className = `notification ${type}`; notification.textContent = message; document.body.appendChild(notification); setTimeout(function() { notification.remove(); }, 3000); }
 
-// --- GOOGLE API INITIALIZATION ---
-function gapiLoaded() { gapi.load('client:auth2', initGapiClient); }
+// --- GOOGLE API INITIALIZATION (Final Version) ---
+window.addEventListener('load', function() {
+    console.log("Halaman sepenuhnya dimuat. Memulai pemuatan Google API...");
+    gapi.load('client:auth2', initGapiClient);
+});
+
 function initGapiClient() {
-    gapi.client.init({ apiKey: API_KEY, clientId: CLIENT_ID, discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'], scope: SCOPES }).then(function () {
+    console.log("gapi.load selesai. Memulai inisialisasi client...");
+    gapi.client.init({
+        apiKey: API_KEY, clientId: CLIENT_ID, discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'], scope: SCOPES
+    }).then(function () {
+        console.log("gapi.client.init BERHASIL! Google API siap digunakan.");
         gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
         const isSignedIn = gapi.auth2.getAuthInstance().isSignedIn.get();
-        if (isSignedIn) { showMainApp(); } else { loginScreen.style.display = 'block'; }
-    }, function(error) { console.error('Error initializing GAPI client', error); alert('Gagal menginisialisasi Google API. Periksa Client ID dan API Key Anda. Lihat konsol untuk detail error.'); });
+        console.log("Status login awal:", isSignedIn);
+        updateSigninStatus(isSignedIn);
+    }, function(error) {
+        console.error('GAGAL saat menginisialisasi GAPI client. Detail error:', error);
+        alert(`Gagal memuat Google API. Error: ${error.error || 'Tidak diketahui'}. Periksa konsol (F12) dan pengaturan Google Cloud Console Anda.`);
+    });
 }
-function updateSigninStatus(isSignedIn) { if (isSignedIn) { showMainApp(); } else { loginScreen.style.display = 'block'; mainApp.style.display = 'none'; } }
+
+function updateSigninStatus(isSignedIn) {
+    console.log("Status login berubah. Sekarang:", isSignedIn);
+    if (isSignedIn) { showMainApp(); } else { loginScreen.style.display = 'block'; mainApp.style.display = 'none'; }
+}
