@@ -1,9 +1,10 @@
 // script.js
+
 // Google Sheets Configuration
-const SPREADSHEET_ID = '1vXAzjiTpVuwTtDe5OoI0cpeKeNnt66dI7Q7zNi7CxnA'; // Ganti dengan ID Spreadsheet Anda
-const SHEET_NAME = 'TELEX_DATA'; // Nama sheet yang akan digunakan
-const CLIENT_ID = '662343193745-2tmbckp2m9je14fces0vulo849tfijmt.apps.googleusercontent.com'; // Ganti dengan Client ID dari Google Cloud Console
-const API_KEY = 'AIzaSyAOimw4XGpxDu5kUMPQ4C0R_CzhI-0-SoE'; // Ganti dengan API Key dari Google Cloud Console
+const SPREADSHEET_ID = '1vXAzjiTpVuwTtDe5OoI0cpeKeNnt66dI7Q7zNi7CxnA';
+const SHEET_NAME = 'TELEX_DATA';
+const CLIENT_ID = '662343193745-2tmbckp2m9je14fces0vulo849tfijmt.apps.googleusercontent.com';
+const API_KEY = 'AIzaSyAOimw4XGpxDu5kUMPQ4C0R_CzhI-0-SoE';
 const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
 
 // Global Variables
@@ -31,6 +32,7 @@ const editModal = document.getElementById('editModal');
 const editForm = document.getElementById('editForm');
 const closeBtn = document.querySelector('.close-btn');
 const btnCancel = document.querySelector('.btn-cancel');
+const googleSignInBtn = document.getElementById('googleSignInBtn');
 
 // Dashboard Elements
 const totalCount = document.getElementById('totalCount');
@@ -40,16 +42,9 @@ const progressPercent = document.getElementById('progressPercent');
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', function() {
-    // Check if user is already logged in
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-        currentUser = JSON.parse(savedUser);
-        showMainApp();
-    }
-    
     // Event Listeners
-    loginForm.addEventListener('submit', handleLogin);
-    logoutBtn.addEventListener('click', handleLogout);
+    loginForm.addEventListener('submit', handleLogin); // Form login lama, bisa dihapus atau dibiarkan
+    logoutBtn.addEventListener('click', handleGoogleSignOut); // Gunakan logout Google
     takeNumberBtn.addEventListener('click', showTelexForm);
     telexInputForm.addEventListener('submit', saveTelex);
     searchInput.addEventListener('input', handleSearch);
@@ -73,46 +68,51 @@ document.addEventListener('DOMContentLoaded', function() {
             closeModal();
         }
     });
-    
-    // Initialize Google API
-    gapiLoaded();
+
+    // Event Listener untuk tombol login Google
+    if (googleSignInBtn) {
+        googleSignInBtn.addEventListener('click', handleGoogleSignIn);
+    }
 });
 
-// Login Function
+// --- AUTHENTICATION FUNCTIONS ---
+
+// Fungsi login lama (tidak digunakan lagi untuk autentikasi utama)
 function handleLogin(e) {
     e.preventDefault();
-    const username = document.getElementById('loginUsername').value;
-    const password = document.getElementById('loginPassword').value;
-    
-    // Simple authentication (in real app, this should be validated against a backend)
-    if (username && password) {
-        currentUser = {
-            username: username,
-            initials: username.substring(0, 2).toUpperCase()
-        };
-        
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        showMainApp();
-    } else {
-        alert('Username dan password harus diisi!');
-    }
+    alert('Silakan gunakan tombol "Masuk dengan Google" untuk masuk.');
 }
 
-// Logout Function
-function handleLogout() {
-    localStorage.removeItem('currentUser');
-    currentUser = null;
-    loginScreen.style.display = 'block';
-    mainApp.style.display = 'none';
-    document.getElementById('loginUsername').value = '';
-    document.getElementById('loginPassword').value = '';
+// Fungsi untuk menangani login dengan Google
+function handleGoogleSignIn() {
+    gapi.auth2.getAuthInstance().signIn().then(function() {
+        console.log('User signed in.');
+        showMainApp(); 
+    }).catch(function(error) {
+        console.error('Error signing in:', error);
+        alert('Gagal masuk dengan Google. Pastikan domain Anda sudah terdaftar di Google Cloud Console.');
+    });
 }
+
+// Fungsi untuk menangani logout dari Google
+function handleGoogleSignOut() {
+    gapi.auth2.getAuthInstance().signOut().then(function() {
+        console.log('User signed out.');
+        loginScreen.style.display = 'block';
+        mainApp.style.display = 'none';
+    });
+}
+
+// --- UI & NAVIGATION FUNCTIONS ---
 
 // Show Main App
 function showMainApp() {
     loginScreen.style.display = 'none';
     mainApp.style.display = 'block';
-    userInitials.textContent = currentUser.initials;
+    // User info is now handled by Google Profile, we can display the email or name
+    const googleUser = gapi.auth2.getAuthInstance().currentUser.get();
+    const profile = googleUser.getBasicProfile();
+    userInitials.textContent = profile.getEmail(); // atau profile.getName()
     
     // Load data from Google Sheets
     loadTelexData();
@@ -120,13 +120,11 @@ function showMainApp() {
 
 // Show Telex Form
 function showTelexForm() {
-    // Generate new telex number
     const today = new Date();
     const dateStr = today.getFullYear().toString() + 
                    (today.getMonth() + 1).toString().padStart(2, '0') + 
                    today.getDate().toString().padStart(2, '0');
     
-    // Get the last number from the data
     let lastNumber = 0;
     if (telexData.length > 0) {
         const todayNumbers = telexData.filter(item => 
@@ -150,6 +148,43 @@ function showTelexForm() {
     telexBody.focus();
 }
 
+// --- GOOGLE SHEETS API FUNCTIONS ---
+
+// Load Telex Data from Google Sheets
+function loadTelexData() {
+    showLoadingIndicator();
+    
+    gapi.client.sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${SHEET_NAME}!A2:F`
+    }).then(function(response) {
+        const rows = response.result.values;
+        if (rows && rows.length > 0) {
+            telexData = rows.map(function(row) {
+                return {
+                    nomorTelex: row[0] || '',
+                    picWidebody: row[1] || '',
+                    picNarrowbody: row[2] || '',
+                    remark: row[3] || '',
+                    tanggalDibuat: row[4] || new Date().toISOString(),
+                    status: row[5] || 'pending'
+                };
+            });
+        } else {
+            telexData = [];
+        }
+        
+        filteredData = [...telexData];
+        renderTable();
+        updateDashboard();
+        hideLoadingIndicator();
+    }, function(error) {
+        console.error('Error loading data:', error);
+        alert('Gagal memuat data dari Google Sheets. Periksa konsol (F12) untuk detail error.');
+        hideLoadingIndicator();
+    });
+}
+
 // Save Telex
 function saveTelex(e) {
     e.preventDefault();
@@ -163,54 +198,82 @@ function saveTelex(e) {
         status: 'pending'
     };
     
-    // Add to data array
-    telexData.push(newTelex);
-    
-    // Save to Google Sheets
     saveToGoogleSheets(newTelex);
     
-    // Reset form
     telexInputForm.style.display = 'none';
     telexBody.value = '';
-    
-    // Refresh table
-    renderTable();
-    updateDashboard();
-}
-
-// Load Telex Data from Google Sheets
-function loadTelexData() {
-    // In a real implementation, this would fetch data from Google Sheets
-    // For now, we'll use mock data
-    telexData = [
-        {
-            nomorTelex: 'TLX-20230501-001',
-            picWidebody: 'John Doe',
-            picNarrowbody: 'Jane Smith',
-            remark: 'Sample telex message for testing purposes',
-            tanggalDibuat: '2023-05-01T10:30:00.000Z',
-            status: 'done'
-        },
-        {
-            nomorTelex: 'TLX-20230501-002',
-            picWidebody: 'Alice Johnson',
-            picNarrowbody: '',
-            remark: 'Another sample telex message',
-            tanggalDibuat: '2023-05-01T14:15:00.000Z',
-            status: 'pending'
-        }
-    ];
-    
-    filteredData = [...telexData];
-    renderTable();
-    updateDashboard();
 }
 
 // Save to Google Sheets
 function saveToGoogleSheets(data) {
-    // In a real implementation, this would save data to Google Sheets
-    console.log('Saving to Google Sheets:', data);
+    showLoadingIndicator();
+    const values = [
+        [data.nomorTelex, data.picWidebody, data.picNarrowbody, data.remark, data.tanggalDibuat, data.status]
+    ];
+    
+    gapi.client.sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${SHEET_NAME}!A:F`,
+        valueInputOption: 'USER_ENTERED',
+        resource: { values: values }
+    }).then(function(response) {
+        console.log('Data saved successfully');
+        hideLoadingIndicator();
+        showNotification('Data berhasil disimpan!', 'success');
+        loadTelexData();
+    }, function(error) {
+        console.error('Error saving data:', error);
+        alert('Gagal menyimpan data. Periksa konsol untuk detail error.');
+        hideLoadingIndicator();
+    });
 }
+
+// Update in Google Sheets
+function updateInGoogleSheets(data) {
+    showLoadingIndicator();
+    const rowIndex = telexData.findIndex(item => item.nomorTelex === data.nomorTelex) + 2;
+    const values = [
+        [data.nomorTelex, data.picWidebody, data.picNarrowbody, data.remark, data.tanggalDibuat, data.status]
+    ];
+    
+    gapi.client.sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${SHEET_NAME}!A${rowIndex}:F${rowIndex}`,
+        valueInputOption: 'USER_ENTERED',
+        resource: { values: values }
+    }).then(function(response) {
+        console.log('Data updated successfully');
+        hideLoadingIndicator();
+        showNotification('Data berhasil diperbarui!', 'success');
+        loadTelexData();
+    }, function(error) {
+        console.error('Error updating data:', error);
+        alert('Gagal memperbarui data. Periksa konsol untuk detail error.');
+        hideLoadingIndicator();
+    });
+}
+
+// Delete from Google Sheets
+function deleteFromGoogleSheets(nomorTelex) {
+    showLoadingIndicator();
+    const rowIndex = telexData.findIndex(item => item.nomorTelex === nomorTelex) + 2;
+    
+    gapi.client.sheets.spreadsheets.values.clear({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${SHEET_NAME}!A${rowIndex}:F${rowIndex}`
+    }).then(function(response) {
+        console.log('Data deleted successfully');
+        hideLoadingIndicator();
+        showNotification('Data berhasil dihapus!', 'success');
+        loadTelexData();
+    }, function(error) {
+        console.error('Error deleting data:', error);
+        alert('Gagal menghapus data. Periksa konsol untuk detail error.');
+        hideLoadingIndicator();
+    });
+}
+
+// --- DATA MANIPULATION & UI RENDER FUNCTIONS ---
 
 // Render Table
 function renderTable() {
@@ -282,7 +345,6 @@ function handleSearch() {
         );
     }
     
-    // Apply current filter
     filterData();
 }
 
@@ -301,7 +363,6 @@ function filterData() {
         tempData = tempData.filter(telex => telex.status === currentFilter);
     }
     
-    // Re-render table with filtered data
     telexTableBody.innerHTML = '';
     
     if (tempData.length === 0) {
@@ -368,13 +429,7 @@ function saveEdit(e) {
         telexData[telexIndex].picNarrowbody = document.getElementById('editPicNarrowbody').value;
         telexData[telexIndex].remark = document.getElementById('editRemark').value;
         
-        // Update in Google Sheets
         updateInGoogleSheets(telexData[telexIndex]);
-        
-        // Refresh table
-        renderTable();
-        
-        // Close modal
         closeModal();
     }
 }
@@ -382,20 +437,7 @@ function saveEdit(e) {
 // Delete Telex
 function deleteTelex(nomorTelex) {
     if (confirm(`Apakah Anda yakin ingin menghapus telex ${nomorTelex}?`)) {
-        const telexIndex = telexData.findIndex(item => item.nomorTelex === nomorTelex);
-        
-        if (telexIndex !== -1) {
-            // Delete from Google Sheets
-            deleteFromGoogleSheets(nomorTelex);
-            
-            // Remove from array
-            telexData.splice(telexIndex, 1);
-            
-            // Refresh table
-            filteredData = [...telexData];
-            filterData();
-            updateDashboard();
-        }
+        deleteFromGoogleSheets(nomorTelex);
     }
 }
 
@@ -405,13 +447,7 @@ function toggleStatus(nomorTelex) {
     
     if (telexIndex !== -1) {
         telexData[telexIndex].status = telexData[telexIndex].status === 'done' ? 'pending' : 'done';
-        
-        // Update in Google Sheets
         updateInGoogleSheets(telexData[telexIndex]);
-        
-        // Refresh table
-        renderTable();
-        updateDashboard();
     }
 }
 
@@ -442,7 +478,38 @@ function exportToCSV() {
     document.body.removeChild(a);
 }
 
-// Google Sheets API Functions
+// --- HELPER FUNCTIONS ---
+
+function showLoadingIndicator() {
+    if (document.getElementById('loadingIndicator')) return;
+    
+    const loadingElement = document.createElement('div');
+    loadingElement.id = 'loadingIndicator';
+    loadingElement.className = 'loading-indicator';
+    loadingElement.innerHTML = '<div class="spinner"></div><p>Memuat data...</p>';
+    document.body.appendChild(loadingElement);
+}
+
+function hideLoadingIndicator() {
+    const loadingElement = document.getElementById('loadingIndicator');
+    if (loadingElement) {
+        loadingElement.remove();
+    }
+}
+
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(function() {
+        notification.remove();
+    }, 3000);
+}
+
+// --- GOOGLE API INITIALIZATION ---
+
 function gapiLoaded() {
     gapi.load('client:auth2', initGapiClient);
 }
@@ -453,20 +520,25 @@ function initGapiClient() {
         clientId: CLIENT_ID,
         discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
         scope: SCOPES
-    }).then(function() {
-        // In a real implementation, you would handle authentication here
-        console.log('Google API initialized');
+    }).then(function () {
+        gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
+        const isSignedIn = gapi.auth2.getAuthInstance().isSignedIn.get();
+        if (isSignedIn) {
+            showMainApp();
+        } else {
+            loginScreen.style.display = 'block';
+        }
     }, function(error) {
-        console.error('Error initializing Google API:', error);
+        console.error('Error initializing GAPI client', error);
+        alert('Gagal menginisialisasi Google API. Periksa Client ID dan API Key Anda.');
     });
 }
 
-// In a real implementation, these functions would interact with Google Sheets
-function updateInGoogleSheets(data) {
-    console.log('Updating in Google Sheets:', data);
+function updateSigninStatus(isSignedIn) {
+    if (isSignedIn) {
+        showMainApp();
+    } else {
+        loginScreen.style.display = 'block';
+        mainApp.style.display = 'none';
+    }
 }
-
-function deleteFromGoogleSheets(nomorTelex) {
-    console.log('Deleting from Google Sheets:', nomorTelex);
-}
-
