@@ -233,22 +233,30 @@ function showLoadingIndicator() { if (document.getElementById('loadingIndicator'
 function hideLoadingIndicator() { const loadingElement = document.getElementById('loadingIndicator'); if (loadingElement) { loadingElement.remove(); } }
 function showNotification(message, type) { const notification = document.createElement('div'); notification.className = `notification ${type}`; notification.textContent = message; document.body.appendChild(notification); setTimeout(function() { notification.remove(); }, 3000); }
 
-// --- GOOGLE API INITIALIZATION (Final Version) ---
-window.addEventListener('load', function() {
-    console.log("Halaman sepenuhnya dimuat. Memulai pemuatan Google API...");
+// --- GOOGLE API INITIALIZATION (Versi Stabil) ---
+function gapiLoaded() {
+    console.log("Google API script berhasil dimuat. Memulai inisialisasi client...");
     gapi.load('client:auth2', initGapiClient);
-});
+}
 
 function initGapiClient() {
     console.log("gapi.load selesai. Memulai inisialisasi client...");
     gapi.client.init({
-        apiKey: API_KEY, clientId: CLIENT_ID, discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'], scope: SCOPES
+        apiKey: API_KEY,
+        clientId: CLIENT_ID,
+        discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
+        scope: SCOPES
     }).then(function () {
         console.log("gapi.client.init BERHASIL! Google API siap digunakan.");
+        
+        // Setup listener untuk perubahan status login
         gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
+
+        // Cek status login awal
         const isSignedIn = gapi.auth2.getAuthInstance().isSignedIn.get();
         console.log("Status login awal:", isSignedIn);
         updateSigninStatus(isSignedIn);
+
     }, function(error) {
         console.error('GAGAL saat menginisialisasi GAPI client. Detail error:', error);
         alert(`Gagal memuat Google API. Error: ${error.error || 'Tidak diketahui'}. Periksa konsol (F12) dan pengaturan Google Cloud Console Anda.`);
@@ -257,5 +265,10 @@ function initGapiClient() {
 
 function updateSigninStatus(isSignedIn) {
     console.log("Status login berubah. Sekarang:", isSignedIn);
-    if (isSignedIn) { showMainApp(); } else { loginScreen.style.display = 'block'; mainApp.style.display = 'none'; }
+    if (isSignedIn) {
+        showMainApp();
+    } else {
+        loginScreen.style.display = 'block';
+        mainApp.style.display = 'none';
+    }
 }
