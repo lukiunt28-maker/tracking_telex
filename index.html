@@ -14,49 +14,58 @@
         </div>
     </header>
 
-    <div class="container">
-        <!-- DASHBOARD REKAP DATA -->
-        <section class="dashboard">
-            <h2>📊 Rekap Data</h2>
-            <div class="dashboard-grid">
-                <div class="card card-total">
-                    <h3>Total Telex</h3>
-                    <p class="card-value" id="totalCount">0</p>
-                </div>
-                <div class="card card-pending">
-                    <h3>⏳ Belum Dikerjakan</h3>
-                    <p class="card-value" id="pendingCount">0</p>
-                </div>
-                <div class="card card-done">
-                    <h3>✅ Sudah Dikerjakan</h3>
-                    <p class="card-value" id="doneCount">0</p>
-                </div>
-                <div class="card card-progress">
-                    <h3>Tingkat Penyelesaian</h3>
-                    <p class="card-value" id="progressPercent">0%</p>
-                </div>
-            </div>
-        </section>
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="screen">
+        <div class="form-container card">
+            <h2>Login Pengguna</h2>
+            <form id="loginForm">
+                <input type="text" id="loginUsername" placeholder="Username" required>
+                <input type="password" id="loginPassword" placeholder="Password" required>
+                <button type="submit">Login</button>
+            </form>
+        </div>
+    </div>
 
-        <!-- FITUR PENCARIAN -->
-        <section class="search-section">
-            <div class="search-container">
-                <span class="search-icon">🔍</span>
-                <input type="text" id="searchInput" placeholder="Cari berdasarkan Nomor Telex, PIC, atau Remark...">
-                <button class="clear-search-btn" id="clearSearchBtn" title="Hapus Pencarian">&times;</button>
+    <!-- MAIN APP SCREEN (Awalnya Tersembunyi) -->
+    <div id="mainApp" class="screen" style="display: none;">
+        <div class="container">
+            <!-- USER INFO BAR -->
+            <div class="user-info-bar">
+                <span>Selamat datang, <strong id="userInitials">--</strong></span>
+                <button id="logoutBtn">Logout</button>
             </div>
-        </section>
 
-        <main>
+            <!-- DASHBOARD REKAP DATA -->
+            <section class="dashboard">
+                <h2>📊 Rekap Data</h2>
+                <div class="dashboard-grid">
+                    <div class="card card-total"><h3>Total Telex</h3><p class="card-value" id="totalCount">0</p></div>
+                    <div class="card card-pending"><h3>⏳ Belum Dikerjakan</h3><p class="card-value" id="pendingCount">0</p></div>
+                    <div class="card card-done"><h3>✅ Sudah Dikerjakan</h3><p class="card-value" id="doneCount">0</p></div>
+                    <div class="card card-progress"><h3>Tingkat Penyelesaian</h3><p class="card-value" id="progressPercent">0%</p></div>
+                </div>
+            </section>
+
+            <!-- FORM AMBIL NOMOR -->
             <section class="form-section card">
-                <h2>Tambah Data Telex Baru</h2>
-                <form id="telexForm">
-                    <input type="text" id="nomorTelex" placeholder="Nomor Telex (unik)" required>
-                    <input type="text" id="picWidebody" placeholder="PIC Widebody" required>
-                    <input type="text" id="picNarrowbody" placeholder="PIC Narrowbody">
-                    <textarea id="remark" placeholder="Remark / Keterangan" rows="3" required></textarea>
-                    <button type="submit">➕ Tambah Telex</button>
+                <h2>Ambil Nomor Telex Baru</h2>
+                <button id="takeNumberBtn">🚀 Ambil Nomor Telex Baru</button>
+                
+                <!-- FORM INPUT TELEX (Awalnya Tersembunyi) -->
+                <form id="telexInputForm" style="display: none; margin-top: 20px;">
+                    <input type="text" id="generatedNomorTelex" placeholder="Nomor Telex" readonly>
+                    <textarea id="telexBody" rows="15" placeholder="Isi Telex"></textarea>
+                    <button type="submit">💾 Simpan Telex</button>
                 </form>
+            </section>
+
+            <!-- FITUR PENCARIAN & KONTROL LAINNYA -->
+            <section class="search-section">
+                <div class="search-container">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" placeholder="Cari berdasarkan Nomor Telex, PIC, atau Remark...">
+                    <button class="clear-search-btn" id="clearSearchBtn" title="Hapus Pencarian">&times;</button>
+                </div>
             </section>
 
             <section class="controls">
@@ -78,17 +87,15 @@
                             <th>PIC Widebody</th>
                             <th>PIC Narrowbody</th>
                             <th>Remark</th>
-                            <th>Tanggal Diterima</th>
+                            <th>Tanggal Dibuat</th>
                             <th>Status</th>
                             <th>Aksi</th>
                         </tr>
                     </thead>
-                    <tbody id="telexTableBody">
-                        <!-- Data akan dimuat di sini oleh JavaScript -->
-                    </tbody>
+                    <tbody id="telexTableBody"></tbody>
                 </table>
             </section>
-        </main>
+        </div>
     </div>
 
     <!-- MODAL EDIT -->
@@ -111,6 +118,7 @@
         </div>
     </div>
 
+    <script src="https://apis.google.com/js/api.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
