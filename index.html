@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aplikasi Tracking Data Telex</title>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://apis.google.com; connect-src 'self' https://accounts.google.com https://apis.google.com https://sheets.googleapis.com; frame-src https://accounts.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -14,7 +13,9 @@
             <p>Pantau dan kelola seluruh data telex dengan mudah dan efisien.</p>
         </div>
     </header>
-    <div id="loginScreen" class="screen">
+
+    <!-- LOGIN SCREEN (Tidak digunakan lagi, tapi dibiarkan untuk struktur HTML) -->
+    <div id="loginScreen" class="screen" style="display: none;">
         <div class="form-container card">
             <h2>Login Pengguna</h2>
             <form id="loginForm">
@@ -22,25 +23,115 @@
                 <input type="password" id="loginPassword" placeholder="Password" required>
                 <button type="submit">Login</button>
             </form>
-            <div class="divider"><span>atau</span></div>
+            
+            <div class="divider">
+                <span>atau</span>
+            </div>
+            
             <button id="googleSignInBtn" class="google-signin-btn">
-                <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2.04a4.8 4.8 0 0 1-7.18-2.53H1.83v2.1A7.98 7.98 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.49a4.77 4.77 0 0 1 0-3.07V5.32H1.83a7.98 7.98 0 0 0 0 7.16l2.67-2z"/><path fill="#EA4335" d="M8.98 6.98c1.18 0 2.23.4 3.06 1.2l2.3-2.3A7.93 7.93 0 0 0 1.83 5.32L4.5 7.42a4.77 4.77 0 0 1 4.48-2.44z"/></svg>
+                <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+                    <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/>
+                    <path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2.04a4.8 4.8 0 0 1-7.18-2.53H1.83v2.1A7.98 7.98 0 0 0 8.98 17z"/>
+                    <path fill="#FBBC05" d="M4.5 10.49a4.77 4.77 0 0 1 0-3.07V5.32H1.83a7.98 7.98 0 0 0 0 7.16l2.67-2z"/>
+                    <path fill="#EA4335" d="M8.98 6.98c1.18 0 2.23.4 3.06 1.2l2.3-2.3A7.93 7.93 0 0 0 1.83 5.32L4.5 7.42a4.77 4.77 0 0 1 4.48-2.44z"/>
+                </svg>
                 Masuk dengan Google
             </button>
         </div>
     </div>
-    <div id="mainApp" class="screen" style="display: none;">
+
+    <!-- MAIN APP SCREEN (Ditampilkan langsung) -->
+    <div id="mainApp" class="screen">
         <div class="container">
-            <div class="user-info-bar"><span>Selamat datang, <strong id="userInitials">--</strong></span><button id="logoutBtn">Logout</button></div>
-            <section class="dashboard"><h2>📊 Rekap Data</h2><div class="dashboard-grid"><div class="card card-total"><h3>Total Telex</h3><p class="card-value" id="totalCount">0</p></div><div class="card card-pending"><h3>⏳ Belum Dikerjakan</h3><p class="card-value" id="pendingCount">0</p></div><div class="card card-done"><h3>✅ Sudah Dikerjakan</h3><p class="card-value" id="doneCount">0</p></div><div class="card card-progress"><h3>Tingkat Penyelesaian</h3><p class="card-value" id="progressPercent">0%</p></div></div></section>
-            <section class="form-section card"><h2>Ambil Nomor Telex Baru</h2><button id="takeNumberBtn">🚀 Ambil Nomor Telex Baru</button><form id="telexInputForm" style="display: none; margin-top: 20px;"><input type="text" id="generatedNomorTelex" placeholder="Nomor Telex" readonly><textarea id="telexBody" rows="15" placeholder="Isi Telex"></textarea><button type="submit">💾 Simpan Telex</button></form></section>
-            <section class="search-section"><div class="search-container"><span class="search-icon">🔍</span><input type="text" id="searchInput" placeholder="Cari berdasarkan Nomor Telex, PIC, atau Remark..."><button class="clear-search-btn" id="clearSearchBtn" title="Hapus Pencarian">&times;</button></div></section>
-            <section class="controls"><button id="exportBtn">📥 Unduh Laporan (CSV)</button><div class="filter-buttons"><button class="filter-btn active" data-filter="all">Semua</button><button class="filter-btn" data-filter="pending">Belum Dikerjakan</button><button class="filter-btn" data-filter="done">Sudah Dikerjakan</button></div></section>
-            <section class="table-section card"><h2>Daftar Telex</h2><table id="telexTable"><thead><tr><th>No</th><th>Nomor Telex</th><th>PIC Widebody</th><th>PIC Narrowbody</th><th>Remark</th><th>Tanggal Dibuat</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="telexTableBody"></tbody></table></section>
+            <!-- USER INFO BAR -->
+            <div class="user-info-bar">
+                <span>Selamat datang, <strong id="userInitials">--</strong></span>
+                <button id="logoutBtn">Keluar</button>
+            </div>
+
+            <!-- DASHBOARD REKAP DATA -->
+            <section class="dashboard">
+                <h2>📊 Rekap Data</h2>
+                <div class="dashboard-grid">
+                    <div class="card card-total"><h3>Total Telex</h3><p class="card-value" id="totalCount">0</p></div>
+                    <div class="card card-pending"><h3>⏳ Belum Dikerjakan</h3><p class="card-value" id="pendingCount">0</p></div>
+                    <div class="card card-done"><h3>✅ Sudah Dikerjakan</h3><p class="card-value" id="doneCount">0</p></div>
+                    <div class="card card-progress"><h3>Tingkat Penyelesaian</h3><p class="card-value" id="progressPercent">0%</p></div>
+                </div>
+            </section>
+
+            <!-- FORM AMBIL NOMOR -->
+            <section class="form-section card">
+                <h2>Ambil Nomor Telex Baru</h2>
+                <button id="takeNumberBtn">🚀 Ambil Nomor Telex Baru</button>
+                
+                <form id="telexInputForm" style="display: none; margin-top: 20px;">
+                    <input type="text" id="generatedNomorTelex" placeholder="Nomor Telex" readonly>
+                    <textarea id="telexBody" rows="15" placeholder="Isi Telex"></textarea>
+                    <button type="submit">💾 Simpan Telex</button>
+                </form>
+            </section>
+
+            <!-- FITUR PENCARIAN & KONTROL LAINNYA -->
+            <section class="search-section">
+                <div class="search-container">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" placeholder="Cari berdasarkan Nomor Telex, PIC, atau Remark...">
+                    <button class="clear-search-btn" id="clearSearchBtn" title="Hapus Pencarian">&times;</button>
+                </div>
+            </section>
+
+            <section class="controls">
+                <button id="exportBtn">📥 Unduh Laporan (CSV)</button>
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-filter="all">Semua</button>
+                    <button class="filter-btn" data-filter="pending">Belum Dikerjakan</button>
+                    <button class="filter-btn" data-filter="done">Sudah Dikerjakan</button>
+                </div>
+            </section>
+
+            <section class="table-section card">
+                <h2>Daftar Telex</h2>
+                <table id="telexTable">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Nomor Telex</th>
+                            <th>PIC Widebody</th>
+                            <th>PIC Narrowbody</th>
+                            <th>Remark</th>
+                            <th>Tanggal Dibuat</th>
+                            <th>Status</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="telexTableBody"></tbody>
+                </table>
+            </section>
         </div>
     </div>
-    <div id="editModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>Edit Data Telex</h2><span class="close-btn">&times;</span></div><form id="editForm"><input type="text" id="editNomorTelex" placeholder="Nomor Telex" readonly><input type="text" id="editPicWidebody" placeholder="PIC Widebody" required><input type="text" id="editPicNarrowbody" placeholder="PIC Narrowbody"><textarea id="editRemark" placeholder="Remark / Keterangan" rows="3" required></textarea><div class="modal-footer"><button type="button" class="btn-cancel">Batal</button><button type="submit">💾 Simpan Perubahan</button></div></form></div></div>
-    <script src="https://apis.google.com/js/api.js?onload=gapiLoaded"></script>
+
+    <!-- MODAL EDIT -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Data Telex</h2>
+                <span class="close-btn">&times;</span>
+            </div>
+            <form id="editForm">
+                <input type="text" id="editNomorTelex" placeholder="Nomor Telex" readonly>
+                <input type="text" id="editPicWidebody" placeholder="PIC Widebody" required>
+                <input type="text" id="editPicNarrowbody" placeholder="PIC Narrowbody">
+                <textarea id="editRemark" placeholder="Remark / Keterangan" rows="3" required></textarea>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel">Batal</button>
+                    <button type="submit">💾 Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- HANYA SCRIPT APLIKASI ANDA, TANPA GOOGLE API -->
     <script src="script.js"></script>
 </body>
 </html>
