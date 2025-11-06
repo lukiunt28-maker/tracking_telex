@@ -13,76 +13,55 @@ let filteredData = [];
 let currentFilter = 'all';
 let currentUser = null;
 
-// DOM Elements
-const loginScreen = document.getElementById('loginScreen');
-const mainApp = document.getElementById('mainApp');
-const loginForm = document.getElementById('loginForm');
-const logoutBtn = document.getElementById('logoutBtn');
-const userInitials = document.getElementById('userInitials');
-const takeNumberBtn = document.getElementById('takeNumberBtn');
-const telexInputForm = document.getElementById('telexInputForm');
-const generatedNomorTelex = document.getElementById('generatedNomorTelex');
-const telexBody = document.getElementById('telexBody');
-const searchInput = document.getElementById('searchInput');
-const clearSearchBtn = document.getElementById('clearSearchBtn');
-const exportBtn = document.getElementById('exportBtn');
-const filterButtons = document.querySelectorAll('.filter-btn');
-const telexTableBody = document.getElementById('telexTableBody');
-const editModal = document.getElementById('editModal');
-const editForm = document.getElementById('editForm');
-const closeBtn = document.querySelector('.close-btn');
-const btnCancel = document.querySelector('.btn-cancel');
-const googleSignInBtn = document.getElementById('googleSignInBtn');
-
-// Dashboard Elements
-const totalCount = document.getElementById('totalCount');
-const pendingCount = document.getElementById('pendingCount');
-const doneCount = document.getElementById('doneCount');
-const progressPercent = document.getElementById('progressPercent');
-
-// Initialize App
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("DOM siap. Memasang event listener.");
-    // Event Listeners
-    loginForm.addEventListener('submit', handleLogin);
-    logoutBtn.addEventListener('click', handleGoogleSignOut);
-    takeNumberBtn.addEventListener('click', showTelexForm);
-    telexInputForm.addEventListener('submit', saveTelex);
-    searchInput.addEventListener('input', handleSearch);
-    clearSearchBtn.addEventListener('click', clearSearch);
-    exportBtn.addEventListener('click', exportToCSV);
-    
-    filterButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            filterButtons.forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
-            currentFilter = this.getAttribute('data-filter');
-            filterData();
-        });
-    });
-    
-    editForm.addEventListener('submit', saveEdit);
-    closeBtn.addEventListener('click', closeModal);
-    btnCancel.addEventListener('click', closeModal);
-    window.addEventListener('click', function(e) {
-        if (e.target === editModal) { closeModal(); }
-    });
-
-    if (googleSignInBtn) {
-        googleSignInBtn.addEventListener('click', handleGoogleSignIn);
-    } else {
-        console.error("Tombol Google Sign-In tidak ditemukan!");
-    }
-});
-
-// --- AUTHENTICATION FUNCTIONS ---
-function handleLogin(e) {
-    e.preventDefault();
-    alert('Silakan gunakan tombol "Masuk dengan Google" untuk masuk.');
+// --- GOOGLE API INITIALIZATION (Langkah Pertama yang Dijalankan) ---
+// Fungsi ini dipanggil oleh ?onload=gapiLoaded dari HTML
+function gapiLoaded() {
+    console.log("Google API script berhasil dimuat. Memulai inisialisasi client...");
+    gapi.load('client:auth2', initGapiClient);
 }
 
+function initGapiClient() {
+    console.log("gapi.load selesai. Memulai inisialisasi client...");
+    gapi.client.init({
+        apiKey: API_KEY,
+        clientId: CLIENT_ID,
+        discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
+        scope: SCOPES
+    }).then(function () {
+        console.log("gapi.client.init BERHASIL! Google API siap digunakan.");
+        // --- PERUBAHAN KRUSIAL ---
+        // Baru setelah ini, kita memasang event listener dan menjalankan logika aplikasi
+        setupApp();
+
+    }, function(error) {
+        console.error('GAGAL saat menginisialisasi GAPI client. Detail error:', error);
+        alert(`Gagal memuat Google API. Error: ${error.error || 'Tidak diketahui'}. Periksa konsol (F12) dan pengaturan Google Cloud Console Anda.`);
+    });
+}
+
+// --- SETUP APLIKASI (Dijalankan HANYA jika Google API siap) ---
+function setupApp() {
+    console.log("Memulai setup aplikasi...");
+    
+    // Event Listener untuk tombol login Google
+    const googleSignInBtn = document.getElementById('googleSignInBtn');
+    if (googleSignInBtn) {
+        googleSignInBtn.addEventListener('click', handleGoogleSignIn);
+        console.log("Event listener untuk tombol Google Sign-In berhasil dipasang.");
+    } else {
+        console.error("Error: Tombol dengan ID 'googleSignInBtn' tidak ditemukan!");
+    }
+
+    // Cek status login awal
+    const isSignedIn = gapi.auth2.getAuthInstance().isSignedIn.get();
+    console.log("Status login awal:", isSignedIn);
+    updateSigninStatus(isSignedIn);
+}
+
+// --- AUTHENTICATION FUNCTIONS ---
 function handleGoogleSignIn() {
-    console.log("Tombol login diklik. Memulai proses signIn...");
+    // Tambahkan log ini untuk memastikan fungsi terpanggil
+    console.log("Tombol 'Masuk dengan Google' diklik! Memulai proses signIn...");
     gapi.auth2.getAuthInstance().signIn().then(function() {
         console.log('Login berhasil!');
         showMainApp(); 
@@ -100,6 +79,16 @@ function handleGoogleSignOut() {
     });
 }
 
+function updateSigninStatus(isSignedIn) {
+    console.log("Status login berubah. Sekarang:", isSignedIn);
+    if (isSignedIn) {
+        showMainApp();
+    } else {
+        loginScreen.style.display = 'block';
+        mainApp.style.display = 'none';
+    }
+}
+
 // --- UI & NAVIGATION FUNCTIONS ---
 function showMainApp() {
     loginScreen.style.display = 'none';
@@ -107,7 +96,48 @@ function showMainApp() {
     const googleUser = gapi.auth2.getAuthInstance().currentUser.get();
     const profile = googleUser.getBasicProfile();
     userInitials.textContent = profile.getEmail();
+    
+    // Pasang event listener untuk tombol-tombol di dalam aplikasi
+    setupAppEventListeners();
+    
+    // Muat data dari Google Sheets
     loadTelexData();
+}
+
+function setupAppEventListeners() {
+    const logoutBtn = document.getElementById('logoutBtn');
+    const takeNumberBtn = document.getElementById('takeNumberBtn');
+    const telexInputForm = document.getElementById('telexInputForm');
+    const searchInput = document.getElementById('searchInput');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    const editForm = document.getElementById('editForm');
+    const closeBtn = document.querySelector('.close-btn');
+    const btnCancel = document.querySelector('.btn-cancel');
+
+    if (logoutBtn) logoutBtn.addEventListener('click', handleGoogleSignOut);
+    if (takeNumberBtn) takeNumberBtn.addEventListener('click', showTelexForm);
+    if (telexInputForm) telexInputForm.addEventListener('submit', saveTelex);
+    if (searchInput) searchInput.addEventListener('input', handleSearch);
+    if (clearSearchBtn) clearSearchBtn.addEventListener('click', clearSearch);
+    if (exportBtn) exportBtn.addEventListener('click', exportToCSV);
+    
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            currentFilter = this.getAttribute('data-filter');
+            filterData();
+        });
+    });
+    
+    if (editForm) editForm.addEventListener('submit', saveEdit);
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (btnCancel) btnCancel.addEventListener('click', closeModal);
+    window.addEventListener('click', function(e) {
+        if (e.target === editModal) { closeModal(); }
+    });
 }
 
 function showTelexForm() {
@@ -242,38 +272,3 @@ function exportToCSV() {
 function showLoadingIndicator() { if (document.getElementById('loadingIndicator')) return; const loadingElement = document.createElement('div'); loadingElement.id = 'loadingIndicator'; loadingElement.className = 'loading-indicator'; loadingElement.innerHTML = '<div class="spinner"></div><p>Memuat data...</p>'; document.body.appendChild(loadingElement); }
 function hideLoadingIndicator() { const loadingElement = document.getElementById('loadingIndicator'); if (loadingElement) { loadingElement.remove(); } }
 function showNotification(message, type) { const notification = document.createElement('div'); notification.className = `notification ${type}`; notification.textContent = message; document.body.appendChild(notification); setTimeout(function() { notification.remove(); }, 3000); }
-
-// --- GOOGLE API INITIALIZATION (Versi Stabil) ---
-function gapiLoaded() {
-    console.log("Google API script berhasil dimuat. Memulai inisialisasi client...");
-    gapi.load('client:auth2', initGapiClient);
-}
-
-function initGapiClient() {
-    console.log("gapi.load selesai. Memulai inisialisasi client...");
-    gapi.client.init({
-        apiKey: API_KEY,
-        clientId: CLIENT_ID,
-        discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
-        scope: SCOPES
-    }).then(function () {
-        console.log("gapi.client.init BERHASIL! Google API siap digunakan.");
-        gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
-        const isSignedIn = gapi.auth2.getAuthInstance().isSignedIn.get();
-        console.log("Status login awal:", isSignedIn);
-        updateSigninStatus(isSignedIn);
-    }, function(error) {
-        console.error('GAGAL saat menginisialisasi GAPI client. Detail error:', error);
-        alert(`Gagal memuat Google API. Error: ${error.error || 'Tidak diketahui'}. Periksa konsol (F12) dan pengaturan Google Cloud Console Anda.`);
-    });
-}
-
-function updateSigninStatus(isSignedIn) {
-    console.log("Status login berubah. Sekarang:", isSignedIn);
-    if (isSignedIn) {
-        showMainApp();
-    } else {
-        loginScreen.style.display = 'block';
-        mainApp.style.display = 'none';
-    }
-}
